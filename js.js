@@ -1,0 +1,506 @@
+const chatBody = document.getElementById('chatBody');
+const inp = document.getElementById('inp');
+const sendBtn = document.getElementById('sendBtn');
+const cursor = document.getElementById('cursor');
+const btnReplay = document.getElementById('btnReplay');
+
+let running = false;
+
+function sleep(ms) {
+	return new Promise(r => setTimeout(r, ms));
+}
+function scrollBottom() {
+	chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function addMsg(role, text, meta) {
+	const msg = document.createElement('div');
+	msg.className = `msg ${role}`;
+
+	const bubble = document.createElement('div');
+	bubble.className = 'bubble';
+	bubble.textContent = text;
+
+	if (meta) {
+		const m = document.createElement('div');
+		m.className = 'meta';
+		m.textContent = meta;
+		bubble.appendChild(m);
+	}
+
+	msg.appendChild(bubble);
+	chatBody.appendChild(msg);
+	scrollBottom();
+}
+
+function addRichBot(html, meta) {
+	const msg = document.createElement('div');
+	msg.className = 'msg bot';
+
+	const bubble = document.createElement('div');
+	bubble.className = 'bubble rich';
+	bubble.innerHTML = html;
+
+	if (meta) {
+		const m = document.createElement('div');
+		m.className = 'meta';
+		m.textContent = meta;
+		bubble.appendChild(m);
+	}
+
+	msg.appendChild(bubble);
+	chatBody.appendChild(msg);
+	scrollBottom();
+}
+
+function addTyping() {
+	const msg = document.createElement('div');
+	msg.className = 'msg bot';
+	msg.id = 'typingRow';
+
+	const bubble = document.createElement('div');
+	bubble.className = 'typing';
+	bubble.innerHTML = '<i></i><i></i><i></i>&nbsp;답변 생성 중';
+
+	msg.appendChild(bubble);
+	chatBody.appendChild(msg);
+	scrollBottom();
+}
+
+function removeTyping() {
+	const t = document.getElementById('typingRow');
+	if (t) t.remove();
+}
+
+function setCursorPos(x, y) {
+	const pad = 8;
+	const w = cursor.offsetWidth || 26;
+	const h = cursor.offsetHeight || 26;
+
+	const hotX = 20;
+	const hotY = 10;
+
+	let cx = x - hotX;
+	let cy = y - hotY;
+
+	const maxX = window.innerWidth - w - pad;
+	const maxY = window.innerHeight - h - pad;
+
+	cx = Math.max(pad, Math.min(cx, maxX));
+	cy = Math.max(pad, Math.min(cy, maxY));
+
+	cursor.style.setProperty('--x', `${cx}px`);
+	cursor.style.setProperty('--y', `${cy}px`);
+	cursor.style.transform = `translate3d(${cx}px, ${cy}px, 0)`;
+}
+
+function rectCenter(el) {
+	const r = el.getBoundingClientRect();
+
+	let ax = 0.5,
+		ay = 0.5;
+
+	if (el === inp) {
+		ax = 0.18;
+		ay = 0.55;
+	}
+	if (el === sendBtn) {
+		ax = 0.5;
+		ay = 0.5;
+	}
+
+	return { x: r.left + r.width * ax, y: r.top + r.height * ay };
+}
+
+async function moveCursorTo(el, opts = {}) {
+	const { offsetX = -8, offsetY = -8, duration = 620 } = opts;
+	cursor.style.transitionDuration = `${duration}ms`;
+
+	await new Promise(requestAnimationFrame);
+
+	const { x, y } = rectCenter(el);
+	setCursorPos(x + offsetX, y + offsetY);
+
+	await sleep(duration + 40);
+}
+
+async function clickEl(el) {
+	el.classList.add('highlight');
+	await sleep(120);
+
+	cursor.classList.remove('clicking');
+	void cursor.offsetWidth;
+	cursor.classList.add('clicking');
+
+	el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+	el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+	el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+	await sleep(260);
+	el.classList.remove('highlight');
+}
+
+async function typeIntoInput(el, text, speed = 60) {
+	el.focus();
+	el.value = '';
+	for (const ch of text) {
+		el.value += ch;
+		el.dispatchEvent(new Event('input', { bubbles: true }));
+		await sleep(speed);
+	}
+}
+
+const FILE_ICON_SVG = `
+<svg class="fileIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" aria-hidden="true">
+  <path fill="currentColor" d="M192 112L304 112L304 200C304 239.8 336.2 272 376 272L464 272L464 512C464 520.8 456.8 528 448 528L192 528C183.2 528 176 520.8 176 512L176 128C176 119.2 183.2 112 192 112zM352 131.9L444.1 224L376 224C362.7 224 352 213.3 352 200L352 131.9zM192 64C156.7 64 128 92.7 128 128L128 512C128 547.3 156.7 576 192 576L448 576C483.3 576 512 547.3 512 512L512 250.5C512 233.5 505.3 217.2 493.3 205.2L370.7 82.7C358.7 70.7 342.5 64 325.5 64L192 64zM248 320C234.7 320 224 330.7 224 344C224 357.3 234.7 368 248 368L392 368C405.3 368 416 357.3 416 344C416 330.7 405.3 320 392 320L248 320zM248 416C234.7 416 224 426.7 224 440C224 453.3 234.7 464 248 464L392 464C405.3 464 416 357.3 416 440C416 426.7 405.3 416 392 416L248 416z"/>
+</svg>`;
+
+const EXCEL_ICON_SVG = `
+<svg class="fileIcon excelIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+  <path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm0 2.5L18.5 9H14zM8.2 17l1.6-2.6L8.2 11h1.7l.8 1.6.9-1.6h1.6l-1.6 3 1.7 3h-1.7l-1-1.7-1 1.7z"/>
+</svg>`;
+
+function renderFileAttachCard(fileName = 'User Manual.pdf') {
+	return `
+    <div class="fileCard">
+      <div class="fileTop">
+        <div class="fileLeft">
+          ${FILE_ICON_SVG}
+          <div class="fileName">${escapeHtml(fileName)}</div>
+        </div>
+        <button class="fileBtn" data-action="summarize">이 문서 요약해줘</button>
+      </div>
+      <div class="summaryBox">
+이 문서는 시스템 사용자 매뉴얼로,
+주요 기능 사용 방법과 운영 시 유의사항을 설명하고 있습니다.
+
+주요 내용은 다음과 같습니다.
+1. 시스템 접속 및 로그인 방법
+2. 주요 기능별 사용 절차
+3. 오류 발생 시 조치 방법
+4. 사용자 권한 및 설정 관리
+5. 자주 묻는 질문(FAQ)
+
+👉 특정 기능이나 필요한 부분만 더 자세히 볼까요?
+      </div>
+    </div>
+  `;
+}
+
+function renderMailSendCard({ toName = '김ㅇㅇ', subject = 'User Manual.pdf 요약 내용 전달건', timeText = '오전 10시 51분', status = 'sending' } = {}) {
+	const isSending = status === 'sending';
+	return `
+    <div class="mailCard ${isSending ? 'is-sending' : ''}" data-mailcard="1">
+      <div class="mailLine">${escapeHtml(toName)}님에게 요약한 내용을 이메일로 전달했습니다
+제목 : ${escapeHtml(subject)}
+전송시각 : ${escapeHtml(timeText)}</div>
+      <div class="mailStatus">${isSending ? '메일 전송하는중…' : '메일 전송완료'}</div>
+    </div>
+  `;
+}
+
+function finalizeMailSend() {
+	const card = chatBody.querySelector('.mailCard[data-mailcard="1"]');
+	if (!card) return;
+	card.classList.remove('is-sending');
+	const status = card.querySelector('.mailStatus');
+	if (status) status.textContent = '메일 전송완료';
+}
+
+function renderGroupedBarChartCard(data) {
+	const { categories, series } = data;
+	const maxVal = Math.max(1, ...series.flatMap(s => s.values));
+
+	let barIndex = 0;
+	const groupsHtml = categories
+		.map((cat, i) => {
+			const bars = series
+				.map((s, si) => {
+					const v = s.values[i] ?? 0;
+					const pct = Math.round((v / maxVal) * 100);
+
+					const html = `
+            <div class="gBar dept-${si}" title="${escapeHtml(`${s.name}: ${v}`)}">
+              <div class="gFill" style="--h:${pct}%; animation-delay:${barIndex * 90}ms;"></div>
+            </div>
+          `;
+					barIndex += 1;
+					return html;
+				})
+				.join('');
+
+			return `
+        <div class="gGroup">
+          <div class="gBars">${bars}</div>
+          <div class="gLabel">${escapeHtml(cat)}</div>
+        </div>
+      `;
+		})
+		.join('');
+
+	const legend = series
+		.map(
+			(s, si) => `
+        <span class="legItem"><i class="legDot dept-${si}"></i>${escapeHtml(s.name)}</span>
+      `
+		)
+		.join('');
+
+	return `
+    <div class="card">
+      <div class="cardTitle">이번달 부서별 매출 (묶음 막대)</div>
+      <div class="gLegend">${legend}</div>
+      <div class="gChart">
+        ${groupsHtml}
+      </div>
+      <div class="gNote">* 시뮬레이션 데이터</div>
+    </div>
+  `;
+}
+
+function getDemoDeptSalesData() {
+	return {
+		categories: ['항목 1', '항목 2', '항목 3', '항목 4'],
+		series: [
+			{ name: '영업', values: [12, 22, 18, 28] },
+			{ name: '마케팅', values: [9, 15, 25, 21] },
+			{ name: '개발', values: [6, 12, 16, 30] },
+		],
+	};
+}
+
+function escapeHtml(s = '') {
+	return String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
+function renderTableCard({ title = '가동률 표', summary = '', columns = [], rows = [], fileName = 'table.csv' } = {}) {
+	const thead = `
+    <thead>
+      <tr>
+        ${columns
+					.map((c, i) => {
+						const isSticky = i === 0;
+						return `<th class="${isSticky ? 'stickyCol' : ''}">${escapeHtml(c)}</th>`;
+					})
+					.join('')}
+      </tr>
+    </thead>
+  `;
+
+	const tbody = `
+    <tbody>
+      ${rows
+				.map(
+					r => `
+        <tr>
+          ${r
+						.map((cell, i) => {
+							const isSticky = i === 0;
+							const isNum = typeof cell === 'number' || /%$/.test(String(cell));
+							return `<td class="${isSticky ? 'stickyCol' : ''} ${isNum ? 'num' : ''}">${escapeHtml(cell)}</td>`;
+						})
+						.join('')}
+        </tr>
+      `
+				)
+				.join('')}
+    </tbody>
+  `;
+
+	return `
+    <div class="tableCard" data-tablecard="1" data-filename="${escapeHtml(fileName)}">
+        <div class="tableActions">
+          <button class="tBtn" data-action="download-csv"> ${EXCEL_ICON_SVG}
+  엑셀(CSV) 다운로드</button>
+        </div>
+      </div>
+
+      <div class="tblWrap" role="region" aria-label="${escapeHtml(title)}" tabindex="0">
+        <table class="tbl">
+          ${thead}
+          ${tbody}
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function tableCardToCSV(tableCardEl) {
+	const table = tableCardEl.querySelector('table');
+	if (!table) return '';
+
+	const rows = [...table.querySelectorAll('tr')].map(tr =>
+		[...tr.querySelectorAll('th,td')]
+			.map(td => {
+				const text = td.textContent.trim().replaceAll('"', '""');
+				return `"${text}"`;
+			})
+			.join(',')
+	);
+
+	return rows.join('\n');
+}
+
+function downloadTextFile(text, fileName = 'table.csv', mime = 'text/csv;charset=utf-8') {
+	const blob = new Blob([text], { type: mime });
+	const url = URL.createObjectURL(blob);
+
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = fileName;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+
+	URL.revokeObjectURL(url);
+}
+
+function getDemoHikariUptimeTable() {
+	return {
+		columns: ['설비', '설비명', '12-01', '12-02', '12-03', '12-04', '12-05', '12-06', '12-07', '12-08'],
+		rows: [
+			['100731', 'HIKARI-8(다이아호닝기)', '92.8%', '89.5%', '60.2%', '83.0%', '86.7%', '59.4%', '1.6%', '56.6%'],
+			['평균 가동률', '-', '92.8%', '89.5%', '60.2%', '83.0%', '86.7%', '59.4%', '1.6%', '56.6%'],
+		],
+		fileName: 'hikari8_2025-12_uptime.csv',
+	};
+}
+
+function respondByQuery(q) {
+	const qq = q.toLowerCase();
+
+	if (qq.includes('pdf') && qq.includes('요약')) {
+		addRichBot(renderFileAttachCard('User Manual.pdf'), '첨부: User Manual.pdf');
+		return;
+	}
+
+	if ((qq.includes('메일') || qq.includes('이메일')) && (qq.includes('전달') || qq.includes('보내'))) {
+		addRichBot(renderMailSendCard({ status: 'sending' }), '첨부자료: email_send');
+		setTimeout(finalizeMailSend, 1200);
+		return;
+	}
+
+	if (qq.includes('부서별') && qq.includes('매출') && qq.includes('그래프')) {
+		addMsg('bot', '이번 달 매출은 다음과 같습니다', '');
+		addRichBot(renderGroupedBarChartCard(getDemoDeptSalesData()), '시각화: Grouped Bar Chart');
+		return;
+	}
+
+	if (qq.includes('가동률')) {
+		addMsg(
+			'bot',
+			'히카리 8호(다이아호닝기)의 2025년 12월 가동률 조회가 완료되었습니다. 12월 1일부터 31일까지 일별 가동률은 92.807%에서 1.588%까지 다양하게 나타났으며, 주요 일자별 가동률은 12월 1일 92.807%, 12월 7일 1.588%, 12월 21일 96.923%, 12월 26일 12.327%, 12월 31일 14.197%입니다. 추가로 필요한 정보가 있으면 알려주세요.',
+			''
+		);
+
+		addRichBot(renderTableCard(getDemoHikariUptimeTable()), '시각화: Table');
+		return;
+	}
+
+	addMsg('bot', '네. 요청하신 내용을 확인했어요. 더 구체적으로(기간/부서/형태) 알려주시면 시뮬레이션을 맞춰드릴게요.', '참조: 에이전트 실행 로그');
+}
+
+function handleSend() {
+	const q = inp.value.trim();
+	if (!q) return;
+
+	addMsg('user', q);
+	inp.value = '';
+
+	addTyping();
+	setTimeout(() => {
+		removeTyping();
+		respondByQuery(q);
+	}, 700);
+}
+
+sendBtn.addEventListener('click', handleSend);
+inp.addEventListener('keydown', e => {
+	if (e.key === 'Enter') handleSend();
+});
+
+function resetChat() {
+	chatBody.innerHTML = `
+    <div class="msg bot"><div class="bubble">안녕하세요! 무엇을 도와드릴까요?</div></div>
+  `;
+	inp.value = '';
+	scrollBottom();
+}
+
+async function playTimeline() {
+	if (running) return;
+	running = true;
+	resetChat();
+
+	setCursorPos(40, 40);
+	await sleep(500);
+
+	await moveCursorTo(inp, { duration: 780 });
+	await clickEl(inp);
+	await typeIntoInput(inp, '이 PDF 파일 요약해줘', 60);
+	await sleep(220);
+
+	await moveCursorTo(sendBtn, { duration: 620 });
+	await clickEl(sendBtn);
+
+	await sleep(1400);
+
+	await moveCursorTo(inp, { duration: 720 });
+	await clickEl(inp);
+	await typeIntoInput(inp, '방금 요약한 내용 김ㅇㅇ에게 이메일로 전달해줘', 48);
+	await sleep(220);
+
+	await moveCursorTo(sendBtn, { duration: 620 });
+	await clickEl(sendBtn);
+
+	await sleep(1700);
+
+	await moveCursorTo(inp, { duration: 720 });
+	await clickEl(inp);
+	await typeIntoInput(inp, '이번달 부서별 매출 그래프로 그려줘', 52);
+	await sleep(220);
+
+	await moveCursorTo(sendBtn, { duration: 620 });
+	await clickEl(sendBtn);
+
+	await sleep(900);
+
+	await moveCursorTo(inp, { duration: 720 });
+	await clickEl(inp);
+	await typeIntoInput(inp, '히카리 8호 12월 가동률 알려줘', 50);
+	await sleep(220);
+
+	await moveCursorTo(sendBtn, { duration: 620 });
+	await clickEl(sendBtn);
+
+	await sleep(900);
+
+	running = false;
+}
+
+btnReplay.addEventListener('click', playTimeline);
+
+chatBody.addEventListener('click', e => {
+	const summarizeBtn = e.target.closest('[data-action="summarize"]');
+	if (summarizeBtn) {
+		addMsg('user', '이 문서 요약해줘');
+		addTyping();
+		setTimeout(() => {
+			removeTyping();
+			addRichBot(renderFileAttachCard('User Manual.pdf'), '첨부파일 요약 (demo)');
+		}, 650);
+		return;
+	}
+
+	const csvBtn = e.target.closest('[data-action="download-csv"]');
+	if (csvBtn) {
+		const card = e.target.closest('.tableCard');
+		if (!card) return;
+		const csv = tableCardToCSV(card);
+		const fileName = card.getAttribute('data-filename') || 'table.csv';
+		downloadTextFile(csv, fileName);
+		return;
+	}
+});
+
+playTimeline();
