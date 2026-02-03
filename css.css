@@ -154,7 +154,8 @@ body {
 .meta {
 	font-size: 11px;
 	color: var(--muted);
-	margin-top: 5px;
+	margin-top: 13px;
+	/* opacity: 0; */
 }
 
 .bubble.rich {
@@ -552,6 +553,8 @@ body {
 	margin: 0 0 6px 0 !important;
 	font-size: 12px;
 	color: var(--muted);
+	height: 30px;
+	align-items: flex-end;
 }
 .legItem {
 	display: inline-flex;
@@ -568,7 +571,7 @@ body {
 
 .bubble.rich .cardTitle {
 	margin: 0 0 6px 0 !important;
-	font-size: 12px;
+	font-size: 13px;
 	line-height: 1.2;
 }
 
@@ -585,11 +588,16 @@ body {
 
 .bubble.rich .gChart {
 	height: auto !important;
-	padding: 6px 8px !important;
+	padding: 50px 0 16px !important;
 	gap: 26px !important;
 	background: transparent !important;
 	border: 0 !important;
 	border-radius: 0 !important;
+}
+
+.bubble.rich:has(.gChart) > .meta {
+	opacity: 0;
+	pointer-events: none;
 }
 
 .gGroup {
@@ -598,6 +606,7 @@ body {
 	flex-direction: column;
 	align-items: stretch;
 	gap: 6px;
+	justify-content: flex-end;
 }
 
 .gBars {
@@ -608,7 +617,7 @@ body {
 
 .gBar {
 	flex: 1;
-	height: 130px;
+	height: 176px;
 	position: relative;
 	border-radius: 0;
 	overflow: hidden;
@@ -682,6 +691,61 @@ body {
 	background: rgba(0, 205, 245, 0.9);
 }
 
+.gChartWrap {
+	display: grid;
+	grid-template-columns: 42px 1fr;
+	gap: 10px;
+	align-items: stretch;
+	height: 220px;
+	position: relative;
+}
+
+.gYAxis {
+	position: relative;
+	height: 220px;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0px;
+}
+
+.gUnit {
+	font-size: 11px;
+	color: var(--muted);
+	margin-bottom: 6px;
+	transform: translateY(20px);
+}
+
+.gTicks {
+	position: absolute;
+	width: 100%;
+	height: auto;
+	top: -6%;
+}
+
+.gTick {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: calc(var(--p) * 1%);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.gTickLabel {
+	width: 28px;
+	font-size: 11px;
+	color: var(--muted);
+	text-align: right;
+}
+
+.gTickLine {
+	flex: 1;
+	height: 1px;
+	background: rgba(17, 24, 39, 0.08);
+}
+
 .tableCard {
 	border: 1px solid var(--line);
 	background: #fff;
@@ -695,6 +759,8 @@ body {
 	display: inline-flex;
 	gap: 8px;
 	flex: 0 0 auto;
+	/* width: 175px; */
+	white-space: nowrap;
 }
 
 .tBtn {
@@ -710,6 +776,7 @@ body {
 	gap: 8px;
 	height: 40px;
 	line-height: 0;
+	width: fit-content;
 }
 
 .tBtn .excelIcon {
@@ -726,11 +793,7 @@ body {
 }
 
 .tblWrap {
-	border: 1px solid var(--line2);
-	border-radius: 12px;
-	overflow: auto;
-	max-width: 100%;
-	background: #fff;
+	border: 0;
 }
 
 .tblWrap::-webkit-scrollbar {
@@ -750,6 +813,11 @@ body {
 	border-spacing: 0;
 	min-width: 720px;
 	width: 100%;
+	padding: 0 10px;
+}
+
+.tbl th {
+	border-top: 1px solid var(--line);
 }
 
 .tbl th,
@@ -762,12 +830,10 @@ body {
 	text-align: left;
 	background: #fff;
 }
+
 .tbl th:last-child,
 .tbl td:last-child {
 	border-right: 0;
-}
-.tbl tr:last-child td {
-	border-bottom: 0;
 }
 
 .tbl thead th {
@@ -795,6 +861,7 @@ body {
 .tbl .num {
 	text-align: right;
 }
+
 .tbl .muted {
 	color: var(--muted);
 }
@@ -802,4 +869,66 @@ body {
 .msg.bot .bubble.rich {
 	max-height: none;
 	gap: 10px;
+}
+
+.alarmCard {
+	border: 1px solid var(--line);
+	background: #fff;
+	border-radius: 14px;
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.alarmHead {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.alarmTitle {
+	display: none;
+}
+
+.bubble.bubble--padLg {
+	padding: 20px 16px;
+	line-height: 1.6;
+}
+
+.alarmBundle {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.alarmAnswer {
+	border: 1px solid var(--line);
+	background: #fff;
+	border-radius: 12px;
+	padding: 10px 12px;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.alarmSectionTitle {
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--txt);
+	padding-left: 2px;
+}
+
+.alarmDots {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 0 0;
+	color: var(--muted);
+	font-size: 14px;
+	line-height: 1;
+}
+.alarmDots span {
+	display: block;
 }

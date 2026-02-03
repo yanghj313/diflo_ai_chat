@@ -13,12 +13,15 @@ function scrollBottom() {
 	chatBody.scrollTop = chatBody.scrollHeight;
 }
 
-function addMsg(role, text, meta) {
+function addMsg(role, text, meta, opts = {}) {
 	const msg = document.createElement('div');
 	msg.className = `msg ${role}`;
 
 	const bubble = document.createElement('div');
 	bubble.className = 'bubble';
+
+	if (opts.bubbleClass) bubble.classList.add(opts.bubbleClass);
+
 	bubble.textContent = text;
 
 	if (meta) {
@@ -208,19 +211,30 @@ function finalizeMailSend() {
 }
 
 function renderGroupedBarChartCard(data) {
-	const { categories, series } = data;
-	const maxVal = Math.max(1, ...series.flatMap(s => s.values));
+	const { categories, series, unit = '억원' } = data;
+
+	const maxValRaw = Math.max(1, ...series.flatMap(s => s.values));
+	const step = 0.5;
+	const maxVal = Math.ceil(maxValRaw / step) * step;
+
+	const ticks = [];
+	for (let v = 0; v <= maxVal + 1e-9; v += step) {
+		const label = Number.isInteger(v) ? String(v) : String(v);
+		ticks.push({ v, label });
+	}
 
 	let barIndex = 0;
+
 	const groupsHtml = categories
 		.map((cat, i) => {
 			const bars = series
 				.map((s, si) => {
-					const v = s.values[i] ?? 0;
+					const v = Number(s.values[i] ?? 0);
 					const pct = Math.round((v / maxVal) * 100);
+					const vText = Number.isInteger(v) ? String(v) : String(v);
 
 					const html = `
-            <div class="gBar dept-${si}" title="${escapeHtml(`${s.name}: ${v}`)}">
+            <div class="gBar dept-${si}" title="${escapeHtml(`${s.name}: ${vText} ${unit}`)}">
               <div class="gFill" style="--h:${pct}%; animation-delay:${barIndex * 90}ms;"></div>
             </div>
           `;
@@ -239,32 +253,54 @@ function renderGroupedBarChartCard(data) {
 		.join('');
 
 	const legend = series
+		.map(s => s.name)
 		.map(
-			(s, si) => `
-        <span class="legItem"><i class="legDot dept-${si}"></i>${escapeHtml(s.name)}</span>
+			(name, si) => `
+        <span class="legItem"><i class="legDot dept-${si}"></i>${escapeHtml(name)}</span>
       `
 		)
 		.join('');
 
+	const gridHtml = `
+    <div class="gYAxis" aria-hidden="true">
+      <div class="gUnit">${escapeHtml(unit)}</div>
+      <div class="gTicks">
+        ${ticks
+					.slice()
+					.reverse()
+					.map(t => {
+						const topPct = Math.round((t.v / maxVal) * 100);
+						return `
+              <div class="gTick" style="--p:${topPct}%;"><span class="gTickLabel">${escapeHtml(t.label)}</span><span class="gTickLine"></span></div>
+            `;
+					})
+					.join('')}
+      </div>
+    </div>
+  `;
+
 	return `
     <div class="card">
-      <div class="cardTitle">이번달 부서별 매출 (묶음 막대)</div>
+      <div class="cardTitle">작년 4분기 부서별 매출</div>
       <div class="gLegend">${legend}</div>
-      <div class="gChart">
-        ${groupsHtml}
+      <div class="gChartWrap">
+        ${gridHtml}
+        <div class="gChart">
+          ${groupsHtml}
+        </div>
       </div>
-      <div class="gNote">* 시뮬레이션 데이터</div>
     </div>
   `;
 }
 
 function getDemoDeptSalesData() {
 	return {
-		categories: ['항목 1', '항목 2', '항목 3', '항목 4'],
+		unit: '억원',
+		categories: ['9월', '10월', '11월', '12월'],
 		series: [
-			{ name: '영업', values: [12, 22, 18, 28] },
-			{ name: '마케팅', values: [9, 15, 25, 21] },
-			{ name: '개발', values: [6, 12, 16, 30] },
+			{ name: '영업', values: [1.5, 1.0, 1.2, 1.5] },
+			{ name: '마케팅', values: [0.8, 1.0, 1.3, 1.2] },
+			{ name: '개발', values: [1.2, 0.7, 0.9, 1.0] },
 		],
 	};
 }
@@ -273,7 +309,7 @@ function escapeHtml(s = '') {
 	return String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 
-function renderTableCard({ title = '가동률 표', summary = '', columns = [], rows = [], fileName = 'table.csv' } = {}) {
+function renderTableCard({ title = '표', summary = '', columns = [], rows = [], fileName = 'table.csv' } = {}) {
 	const thead = `
     <thead>
       <tr>
@@ -355,6 +391,62 @@ function downloadTextFile(text, fileName = 'table.csv', mime = 'text/csv;charset
 	URL.revokeObjectURL(url);
 }
 
+function renderAlarmTableCard({ title = '알람', columns = [], rows = [], fileName = 'alarm.csv' } = {}) {
+	const thead = `
+    <thead>
+      <tr>
+        ${columns
+					.map((c, i) => {
+						const isSticky = i === 0;
+						return `<th class="${isSticky ? 'stickyCol' : ''}">${escapeHtml(c)}</th>`;
+					})
+					.join('')}
+      </tr>
+    </thead>
+  `;
+
+	const tbody = `
+    <tbody>
+      ${rows
+				.map(
+					r => `
+        <tr>
+          ${r
+						.map((cell, i) => {
+							const isSticky = i === 0;
+							const isNum = typeof cell === 'number' || /%$/.test(String(cell));
+							return `<td class="${isSticky ? 'stickyCol' : ''} ${isNum ? 'num' : ''}">${escapeHtml(cell)}</td>`;
+						})
+						.join('')}
+        </tr>
+      `
+				)
+				.join('')}
+    </tbody>
+  `;
+
+	return `
+    <div class="alarmCard" data-tablecard="1" data-filename="${escapeHtml(fileName)}">
+      <div class="alarmHead">
+        <div class="alarmTitle">${escapeHtml(title)}</div>
+        <div class="tableActions">
+          <button class="tBtn" data-action="download-csv">
+            ${EXCEL_ICON_SVG}
+            엑셀(CSV) 다운로드
+          </button>
+        </div>
+      </div>
+
+      <div class="tblWrap" role="region" aria-label="${escapeHtml(title)}" tabindex="0">
+        <table class="tbl">
+          ${thead}
+          ${tbody}
+        </table>
+      </div>
+    </div>
+  `;
+}
+
 function getDemoHikariUptimeTable() {
 	return {
 		columns: ['설비', '설비명', '12-01', '12-02', '12-03', '12-04', '12-05', '12-06', '12-07', '12-08'],
@@ -363,6 +455,30 @@ function getDemoHikariUptimeTable() {
 			['평균 가동률', '-', '92.8%', '89.5%', '60.2%', '83.0%', '86.7%', '59.4%', '1.6%', '56.6%'],
 		],
 		fileName: 'hikari8_2025-12_uptime.csv',
+	};
+}
+
+function getXxxWasherWarningAlarmTable() {
+	return {
+		title: '경알람',
+		columns: ['날짜', '시간', '알람내용', '알람 해제시간'],
+		rows: [
+			['2025-01-01', '11:25:21', '장비의 신호감지가 비정상적입니다', '11:27:49'],
+			['2025-01-24', '13:24:01', '장비의 경광등 신호가 비정상적입니다', '13:24:55'],
+		],
+		fileName: 'xxx_washer_warning_alarm.csv',
+	};
+}
+
+function getXxxWasherCriticalAlarmTable() {
+	return {
+		title: '중알람',
+		columns: ['날짜', '시간', '알람내용', '알람 해제시간'],
+		rows: [
+			['2025-01-02', '11:25:31', '도어 열림 신호가 감지되었습니다', '11:27:50'],
+			['2025-01-31', '13:24:01', '로봇의 Arm 신호 감지되었습니다', '13:24:55'],
+		],
+		fileName: 'xxx_washer_critical_alarm.csv',
 	};
 }
 
@@ -381,23 +497,58 @@ function respondByQuery(q) {
 	}
 
 	if (qq.includes('부서별') && qq.includes('매출') && qq.includes('그래프')) {
-		addMsg('bot', '이번 달 매출은 다음과 같습니다', '');
+		addMsg('bot', '작년 4분기 매출은 다음과 같습니다', '');
 		addRichBot(renderGroupedBarChartCard(getDemoDeptSalesData()), '시각화: Grouped Bar Chart');
 		return;
+	}
+
+	if ((qq.includes('xxx') && qq.includes('세정기')) || qq.includes('세정기 알람') || (qq.includes('세정기') && qq.includes('알람')) || qq.includes('알람내역')) {
+		addMsg(
+			'bot',
+			`xxx 세정기는 작업을 시작하기 전에 제품을 세정하는 장비입니다.
+
+입고 날짜는 2015년 7월 8일 이며
+특정 제품 기준으로 총 55,334번 세정 작업이 진행되었습니다.
+생산 사이클은 10ms 입니다.
+
+현재까지 총 27회 수리가 진행되었습니다
+자세한 수리 내용은 [xxx 세정기 고장내역 및 수리내역] 문서에서 확인 가능합니다
+
+공장 내 위치는 A구역 28번에 위치해있습니다
+지도로 위치를 확인하고 싶으시다면 “지도로 알려줘” 라고 말씀해주세요
+
+다음은 xxx 세정기의 알람내역입니다.`,
+			'',
+			{ bubbleClass: 'bubble--padLg' }
+		);
+
+		addRichBot(
+			`
+    <div class="alarmBundle">
+      <div class="alarmSectionTitle">&lt;경알람&gt;</div>
+      ${renderAlarmTableCard(getXxxWasherWarningAlarmTable())}
+
+      <div class="alarmDots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></div>
+
+      <div class="alarmSectionTitle">&lt;중알람&gt;</div>
+      ${renderAlarmTableCard(getXxxWasherCriticalAlarmTable())}
+    </div>
+  `,
+			''
+		);
 	}
 
 	if (qq.includes('가동률')) {
 		addMsg(
 			'bot',
 			'히카리 8호(다이아호닝기)의 2025년 12월 가동률 조회가 완료되었습니다. 12월 1일부터 31일까지 일별 가동률은 92.807%에서 1.588%까지 다양하게 나타났으며, 주요 일자별 가동률은 12월 1일 92.807%, 12월 7일 1.588%, 12월 21일 96.923%, 12월 26일 12.327%, 12월 31일 14.197%입니다. 추가로 필요한 정보가 있으면 알려주세요.',
-			''
+			'',
+			{ bubbleClass: 'bubble--padLg' }
 		);
 
 		addRichBot(renderTableCard(getDemoHikariUptimeTable()), '시각화: Table');
 		return;
 	}
-
-	addMsg('bot', '네. 요청하신 내용을 확인했어요. 더 구체적으로(기간/부서/형태) 알려주시면 시뮬레이션을 맞춰드릴게요.', '참조: 에이전트 실행 로그');
 }
 
 function handleSend() {
@@ -467,6 +618,16 @@ async function playTimeline() {
 
 	await moveCursorTo(inp, { duration: 720 });
 	await clickEl(inp);
+	await typeIntoInput(inp, 'xxx 세정기에 대해서 알려줘', 50);
+	await sleep(220);
+
+	await moveCursorTo(sendBtn, { duration: 620 });
+	await clickEl(sendBtn);
+
+	await sleep(1100);
+
+	await moveCursorTo(inp, { duration: 720 });
+	await clickEl(inp);
 	await typeIntoInput(inp, '히카리 8호 12월 가동률 알려줘', 50);
 	await sleep(220);
 
@@ -494,7 +655,7 @@ chatBody.addEventListener('click', e => {
 
 	const csvBtn = e.target.closest('[data-action="download-csv"]');
 	if (csvBtn) {
-		const card = e.target.closest('.tableCard');
+		const card = e.target.closest('.tableCard, .alarmCard');
 		if (!card) return;
 		const csv = tableCardToCSV(card);
 		const fileName = card.getAttribute('data-filename') || 'table.csv';
