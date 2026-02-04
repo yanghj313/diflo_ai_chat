@@ -531,7 +531,7 @@ function respondByQuery(q) {
 	if (isWasher && !isAlarmIntent) {
 		addMsg(
 			'bot',
-			`답변 :
+			`
 xxx 세정기는 작업을 시작하기 전에 제품을 세정하는 장비입니다.
 입고 날짜는 2015년 7월 8일 이며
 특정 제품 기준으로 총 55,334번 세정 작업이 진행되었습니다.
@@ -554,7 +554,7 @@ xxx 세정기는 작업을 시작하기 전에 제품을 세정하는 장비입�
 
 		addRichBot(
 			renderAlarmBundleCard({
-				answerText: '답변 : 다음은 xxx 세정기의 알람내역입니다.',
+				answerText: `다음은 xxx 세정기의 알람내역입니다.`,
 				warning,
 				critical,
 				fileName: 'xxx_washer_alarm_bundle.csv',

@@ -1270,3 +1270,7 @@ body {
 	-ms-flex-pack: end;
 	justify-content: flex-end;
 }
+
+.alarmBundleTitle {
+	display: none;
+}
