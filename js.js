@@ -388,17 +388,6 @@ function downloadTextFile(text, fileName = 'table.csv', mime = 'text/csv;charset
 	URL.revokeObjectURL(url);
 }
 
-function getDemoHikariUptimeTable() {
-	return {
-		columns: ['설비', '설비명', '12-01', '12-02', '12-03', '12-04', '12-05', '12-06', '12-07', '12-08'],
-		rows: [
-			['100731', 'HIKARI-8(다이아호닝기)', '92.8%', '89.5%', '60.2%', '83.0%', '86.7%', '59.4%', '1.6%', '56.6%'],
-			['평균 가동률', '-', '92.8%', '89.5%', '60.2%', '83.0%', '86.7%', '59.4%', '1.6%', '56.6%'],
-		],
-		fileName: 'hikari8_2025-12_uptime.csv',
-	};
-}
-
 function getXxxWasherWarningAlarmTable() {
 	return {
 		title: '경알람',
@@ -570,20 +559,8 @@ xxx 세정기는 작업을 시작하기 전에 제품을 세정하는 장비입�
 				critical,
 				fileName: 'xxx_washer_alarm_bundle.csv',
 			}),
-			'' // meta 없음
+			''
 		);
-		return;
-	}
-
-	if (qq.includes('가동률')) {
-		addMsg(
-			'bot',
-			'히카리 8호(다이아호닝기)의 2025년 12월 가동률 조회가 완료되었습니다. 12월 1일부터 31일까지 일별 가동률은 92.807%에서 1.588%까지 다양하게 나타났으며, 주요 일자별 가동률은 12월 1일 92.807%, 12월 7일 1.588%, 12월 21일 96.923%, 12월 26일 12.327%, 12월 31일 14.197%입니다. 추가로 필요한 정보가 있으면 알려주세요.',
-			'',
-			{ bubbleClass: 'bubble--padLg' }
-		);
-
-		addRichBot(renderTableCard(getDemoHikariUptimeTable()), '시각화: Table');
 		return;
 	}
 
@@ -664,14 +641,6 @@ async function playTimeline() {
 	await moveCursorTo(sendBtn, { duration: 620 });
 	await clickEl(sendBtn);
 	await sleep(1200);
-
-	await moveCursorTo(inp, { duration: 720 });
-	await clickEl(inp);
-	await typeIntoInput(inp, '히카리 8호 12월 가동률 알려줘', 50);
-	await sleep(220);
-	await moveCursorTo(sendBtn, { duration: 620 });
-	await clickEl(sendBtn);
-	await sleep(900);
 
 	running = false;
 }
