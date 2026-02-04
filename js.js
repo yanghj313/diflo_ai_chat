@@ -12,6 +12,9 @@ function sleep(ms) {
 function scrollBottom() {
 	chatBody.scrollTop = chatBody.scrollHeight;
 }
+function escapeHtml(s = '') {
+	return String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
 
 function addMsg(role, text, meta, opts = {}) {
 	const msg = document.createElement('div');
@@ -19,7 +22,6 @@ function addMsg(role, text, meta, opts = {}) {
 
 	const bubble = document.createElement('div');
 	bubble.className = 'bubble';
-
 	if (opts.bubbleClass) bubble.classList.add(opts.bubbleClass);
 
 	bubble.textContent = text;
@@ -155,7 +157,7 @@ async function typeIntoInput(el, text, speed = 60) {
 
 const FILE_ICON_SVG = `
 <svg class="fileIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" aria-hidden="true">
-  <path fill="currentColor" d="M192 112L304 112L304 200C304 239.8 336.2 272 376 272L464 272L464 512C464 520.8 456.8 528 448 528L192 528C183.2 528 176 520.8 176 512L176 128C176 119.2 183.2 112 192 112zM352 131.9L444.1 224L376 224C362.7 224 352 213.3 352 200L352 131.9zM192 64C156.7 64 128 92.7 128 128L128 512C128 547.3 156.7 576 192 576L448 576C483.3 576 512 547.3 512 512L512 250.5C512 233.5 505.3 217.2 493.3 205.2L370.7 82.7C358.7 70.7 342.5 64 325.5 64L192 64zM248 320C234.7 320 224 330.7 224 344C224 357.3 234.7 368 248 368L392 368C405.3 368 416 357.3 416 344C416 330.7 405.3 320 392 320L248 320zM248 416C234.7 416 224 426.7 224 440C224 453.3 234.7 464 248 464L392 464C405.3 464 416 357.3 416 440C416 426.7 405.3 416 392 416L248 416z"/>
+  <path fill="currentColor" d="M192 112L304 112L304 200C304 239.8 336.2 272 376 272L464 272L464 512C464 520.8 456.8 528 448 528L192 528C183.2 528 176 520.8 176 512L176 128C176 119.2 183.2 112 192 112zM352 131.9L444.1 224L376 224C362.7 224 352 213.3 352 200L352 131.9zM192 64C156.7 64 128 92.7 128 128L128 512C128 547.3 156.7 576 192 576L448 576C483.3 576 512 547.3 512 512L512 250.5C512 233.5 505.3 217.2 493.3 205.2L370.7 82.7C358.7 70.7 342.5 64 325.5 64L192 64zM248 320C234.7 320 224 330.7 224 344C224 357.3 234.7 368 248 368L392 368C405.3 368 416 357.3 416 344C416 330.7 405.3 320 392 320L248 320zM248 416C234.7 416 224 426.7 224 440C224 453.3 234.7 464 248 464L392 464C405.3 464 416 453.3 416 440C416 426.7 405.3 416 392 416L248 416z"/>
 </svg>`;
 
 const EXCEL_ICON_SVG = `
@@ -305,11 +307,7 @@ function getDemoDeptSalesData() {
 	};
 }
 
-function escapeHtml(s = '') {
-	return String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
-}
-
-function renderTableCard({ title = '표', summary = '', columns = [], rows = [], fileName = 'table.csv' } = {}) {
+function renderTableCard({ title = '표', columns = [], rows = [], fileName = 'table.csv' } = {}) {
 	const thead = `
     <thead>
       <tr>
@@ -345,10 +343,11 @@ function renderTableCard({ title = '표', summary = '', columns = [], rows = [],
 
 	return `
     <div class="tableCard" data-tablecard="1" data-filename="${escapeHtml(fileName)}">
-        <div class="tableActions">
-          <button class="tBtn" data-action="download-csv"> ${EXCEL_ICON_SVG}
-  엑셀(CSV) 다운로드</button>
-        </div>
+      <div class="tableActions">
+        <button class="tBtn" data-action="download-csv">
+          ${EXCEL_ICON_SVG}
+          엑셀(CSV) 다운로드
+        </button>
       </div>
 
       <div class="tblWrap" role="region" aria-label="${escapeHtml(title)}" tabindex="0">
@@ -364,7 +363,6 @@ function renderTableCard({ title = '표', summary = '', columns = [], rows = [],
 function tableCardToCSV(tableCardEl) {
 	const table = tableCardEl.querySelector('table');
 	if (!table) return '';
-
 	const rows = [...table.querySelectorAll('tr')].map(tr =>
 		[...tr.querySelectorAll('th,td')]
 			.map(td => {
@@ -373,7 +371,6 @@ function tableCardToCSV(tableCardEl) {
 			})
 			.join(',')
 	);
-
 	return rows.join('\n');
 }
 
@@ -391,7 +388,40 @@ function downloadTextFile(text, fileName = 'table.csv', mime = 'text/csv;charset
 	URL.revokeObjectURL(url);
 }
 
-function renderAlarmTableCard({ title = '알람', columns = [], rows = [], fileName = 'alarm.csv' } = {}) {
+function getDemoHikariUptimeTable() {
+	return {
+		columns: ['설비', '설비명', '12-01', '12-02', '12-03', '12-04', '12-05', '12-06', '12-07', '12-08'],
+		rows: [
+			['100731', 'HIKARI-8(다이아호닝기)', '92.8%', '89.5%', '60.2%', '83.0%', '86.7%', '59.4%', '1.6%', '56.6%'],
+			['평균 가동률', '-', '92.8%', '89.5%', '60.2%', '83.0%', '86.7%', '59.4%', '1.6%', '56.6%'],
+		],
+		fileName: 'hikari8_2025-12_uptime.csv',
+	};
+}
+
+function getXxxWasherWarningAlarmTable() {
+	return {
+		title: '경알람',
+		columns: ['날짜', '시간', '알람내용', '알람 해제시간'],
+		rows: [
+			['2025-01-01', '11:25:21', '장비의 신호감지가 비정상적입니다', '11:27:49'],
+			['2025-01-24', '13:24:01', '장비의 경광등 신호가 비정상적입니다', '13:24:55'],
+		],
+	};
+}
+
+function getXxxWasherCriticalAlarmTable() {
+	return {
+		title: '중알람',
+		columns: ['날짜', '시간', '알람내용', '알람 해제시간'],
+		rows: [
+			['2025-01-02', '11:25:31', '도어 열림 신호가 감지되었습니다', '11:27:50'],
+			['2025-01-31', '13:24:01', '로봇의 Arm 신호 감지되었습니다', '13:24:55'],
+		],
+	};
+}
+
+function renderAlarmTableOnly({ title = '', columns = [], rows = [] } = {}) {
 	const thead = `
     <thead>
       <tr>
@@ -426,17 +456,7 @@ function renderAlarmTableCard({ title = '알람', columns = [], rows = [], fileN
   `;
 
 	return `
-    <div class="alarmCard" data-tablecard="1" data-filename="${escapeHtml(fileName)}">
-      <div class="alarmHead">
-        <div class="alarmTitle">${escapeHtml(title)}</div>
-        <div class="tableActions">
-          <button class="tBtn" data-action="download-csv">
-            ${EXCEL_ICON_SVG}
-            엑셀(CSV) 다운로드
-          </button>
-        </div>
-      </div>
-
+    <div class="alarmTableOnly">
       <div class="tblWrap" role="region" aria-label="${escapeHtml(title)}" tabindex="0">
         <table class="tbl">
           ${thead}
@@ -447,39 +467,53 @@ function renderAlarmTableCard({ title = '알람', columns = [], rows = [], fileN
   `;
 }
 
-function getDemoHikariUptimeTable() {
-	return {
-		columns: ['설비', '설비명', '12-01', '12-02', '12-03', '12-04', '12-05', '12-06', '12-07', '12-08'],
-		rows: [
-			['100731', 'HIKARI-8(다이아호닝기)', '92.8%', '89.5%', '60.2%', '83.0%', '86.7%', '59.4%', '1.6%', '56.6%'],
-			['평균 가동률', '-', '92.8%', '89.5%', '60.2%', '83.0%', '86.7%', '59.4%', '1.6%', '56.6%'],
-		],
-		fileName: 'hikari8_2025-12_uptime.csv',
-	};
+function renderAlarmBundleCard({ answerText = '답변 : 다음은 xxx 세정기의 알람내역입니다.', warning, critical, fileName = 'xxx_washer_alarm_bundle.csv' } = {}) {
+	return `
+    <div class="alarmBundleCard" data-bundle="alarm" data-filename="${escapeHtml(fileName)}">
+      <div class="alarmBundleAnswer">${escapeHtml(answerText)}</div>
+
+      <div class="alarmBundleTop">
+        <div class="alarmBundleTitle">알람내역</div>
+        <div class="tableActions">
+          <button class="tBtn" data-action="download-alarm-bundle">
+            ${EXCEL_ICON_SVG}
+            엑셀(CSV) 다운로드
+          </button>
+        </div>
+      </div>
+
+      <div class="alarmSectionTitle">&lt;${escapeHtml(warning?.title || '경알람')}&gt;</div>
+      ${renderAlarmTableOnly(warning)}
+
+      <div class="alarmDots" aria-hidden="true">
+        <span>.</span><span>.</span><span>.</span>
+      </div>
+
+      <div class="alarmSectionTitle">&lt;${escapeHtml(critical?.title || '중알람')}&gt;</div>
+      ${renderAlarmTableOnly(critical)}
+    </div>
+  `;
 }
 
-function getXxxWasherWarningAlarmTable() {
-	return {
-		title: '경알람',
-		columns: ['날짜', '시간', '알람내용', '알람 해제시간'],
-		rows: [
-			['2025-01-01', '11:25:21', '장비의 신호감지가 비정상적입니다', '11:27:49'],
-			['2025-01-24', '13:24:01', '장비의 경광등 신호가 비정상적입니다', '13:24:55'],
-		],
-		fileName: 'xxx_washer_warning_alarm.csv',
-	};
-}
+function alarmBundleToCSV(bundleCardEl) {
+	const wrap = bundleCardEl;
+	if (!wrap) return '';
 
-function getXxxWasherCriticalAlarmTable() {
-	return {
-		title: '중알람',
-		columns: ['날짜', '시간', '알람내용', '알람 해제시간'],
-		rows: [
-			['2025-01-02', '11:25:31', '도어 열림 신호가 감지되었습니다', '11:27:50'],
-			['2025-01-31', '13:24:01', '로봇의 Arm 신호 감지되었습니다', '13:24:55'],
-		],
-		fileName: 'xxx_washer_critical_alarm.csv',
-	};
+	const titles = [...wrap.querySelectorAll('.alarmSectionTitle')].map(el => el.textContent.trim());
+	const tables = [...wrap.querySelectorAll('table.tbl')];
+
+	const lines = [];
+	tables.forEach((table, idx) => {
+		const title = titles[idx] || `Section ${idx + 1}`;
+		lines.push(`"${title.replaceAll('"', '""')}"`);
+
+		const rows = [...table.querySelectorAll('tr')].map(tr => [...tr.querySelectorAll('th,td')].map(td => `"${td.textContent.trim().replaceAll('"', '""')}"`).join(','));
+
+		lines.push(...rows);
+		lines.push('');
+	});
+
+	return lines.join('\n');
 }
 
 function respondByQuery(q) {
@@ -502,11 +536,14 @@ function respondByQuery(q) {
 		return;
 	}
 
-	if ((qq.includes('xxx') && qq.includes('세정기')) || qq.includes('세정기 알람') || (qq.includes('세정기') && qq.includes('알람')) || qq.includes('알람내역')) {
+	const isWasher = qq.includes('xxx') && qq.includes('세정기');
+	const isAlarmIntent = qq.includes('알람') || qq.includes('알람내역') || qq.includes('경알람') || qq.includes('중알람');
+
+	if (isWasher && !isAlarmIntent) {
 		addMsg(
 			'bot',
-			`xxx 세정기는 작업을 시작하기 전에 제품을 세정하는 장비입니다.
-
+			`답변 :
+xxx 세정기는 작업을 시작하기 전에 제품을 세정하는 장비입니다.
 입고 날짜는 2015년 7월 8일 이며
 특정 제품 기준으로 총 55,334번 세정 작업이 진행되었습니다.
 생산 사이클은 10ms 입니다.
@@ -515,27 +552,27 @@ function respondByQuery(q) {
 자세한 수리 내용은 [xxx 세정기 고장내역 및 수리내역] 문서에서 확인 가능합니다
 
 공장 내 위치는 A구역 28번에 위치해있습니다
-지도로 위치를 확인하고 싶으시다면 “지도로 알려줘” 라고 말씀해주세요
-
-다음은 xxx 세정기의 알람내역입니다.`,
+지도로 위치를 확인하고 싶으시다면 “지도로 알려줘” 라고 말씀해주세요`,
 			'',
 			{ bubbleClass: 'bubble--padLg' }
 		);
+		return;
+	}
+
+	if (isWasher && isAlarmIntent) {
+		const warning = getXxxWasherWarningAlarmTable();
+		const critical = getXxxWasherCriticalAlarmTable();
 
 		addRichBot(
-			`
-    <div class="alarmBundle">
-      <div class="alarmSectionTitle">&lt;경알람&gt;</div>
-      ${renderAlarmTableCard(getXxxWasherWarningAlarmTable())}
-
-      <div class="alarmDots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></div>
-
-      <div class="alarmSectionTitle">&lt;중알람&gt;</div>
-      ${renderAlarmTableCard(getXxxWasherCriticalAlarmTable())}
-    </div>
-  `,
-			''
+			renderAlarmBundleCard({
+				answerText: '답변 : 다음은 xxx 세정기의 알람내역입니다.',
+				warning,
+				critical,
+				fileName: 'xxx_washer_alarm_bundle.csv',
+			}),
+			'' // meta 없음
 		);
+		return;
 	}
 
 	if (qq.includes('가동률')) {
@@ -549,6 +586,8 @@ function respondByQuery(q) {
 		addRichBot(renderTableCard(getDemoHikariUptimeTable()), '시각화: Table');
 		return;
 	}
+
+	addMsg('bot', '네. 요청하신 내용을 확인했어요. 더 구체적으로(기간/부서/형태) 알려주시면 시뮬레이션을 맞춰드릴게요.', '참조: 에이전트 실행 로그');
 }
 
 function handleSend() {
@@ -590,50 +629,48 @@ async function playTimeline() {
 	await clickEl(inp);
 	await typeIntoInput(inp, '이 PDF 파일 요약해줘', 60);
 	await sleep(220);
-
 	await moveCursorTo(sendBtn, { duration: 620 });
 	await clickEl(sendBtn);
-
 	await sleep(1400);
 
 	await moveCursorTo(inp, { duration: 720 });
 	await clickEl(inp);
 	await typeIntoInput(inp, '방금 요약한 내용 김ㅇㅇ에게 이메일로 전달해줘', 48);
 	await sleep(220);
-
 	await moveCursorTo(sendBtn, { duration: 620 });
 	await clickEl(sendBtn);
-
 	await sleep(1700);
 
 	await moveCursorTo(inp, { duration: 720 });
 	await clickEl(inp);
 	await typeIntoInput(inp, '이번달 부서별 매출 그래프로 그려줘', 52);
 	await sleep(220);
-
 	await moveCursorTo(sendBtn, { duration: 620 });
 	await clickEl(sendBtn);
-
-	await sleep(900);
+	await sleep(1000);
 
 	await moveCursorTo(inp, { duration: 720 });
 	await clickEl(inp);
 	await typeIntoInput(inp, 'xxx 세정기에 대해서 알려줘', 50);
 	await sleep(220);
-
 	await moveCursorTo(sendBtn, { duration: 620 });
 	await clickEl(sendBtn);
-
 	await sleep(1100);
+
+	await moveCursorTo(inp, { duration: 720 });
+	await clickEl(inp);
+	await typeIntoInput(inp, 'xxx 세정기 알람 내역 알려줘', 46);
+	await sleep(220);
+	await moveCursorTo(sendBtn, { duration: 620 });
+	await clickEl(sendBtn);
+	await sleep(1200);
 
 	await moveCursorTo(inp, { duration: 720 });
 	await clickEl(inp);
 	await typeIntoInput(inp, '히카리 8호 12월 가동률 알려줘', 50);
 	await sleep(220);
-
 	await moveCursorTo(sendBtn, { duration: 620 });
 	await clickEl(sendBtn);
-
 	await sleep(900);
 
 	running = false;
@@ -653,9 +690,19 @@ chatBody.addEventListener('click', e => {
 		return;
 	}
 
+	const bundleBtn = e.target.closest('[data-action="download-alarm-bundle"]');
+	if (bundleBtn) {
+		const bundle = e.target.closest('.alarmBundleCard');
+		if (!bundle) return;
+		const csv = alarmBundleToCSV(bundle);
+		const fileName = bundle.getAttribute('data-filename') || 'alarm_bundle.csv';
+		downloadTextFile(csv, fileName);
+		return;
+	}
+
 	const csvBtn = e.target.closest('[data-action="download-csv"]');
 	if (csvBtn) {
-		const card = e.target.closest('.tableCard, .alarmCard');
+		const card = e.target.closest('.tableCard');
 		if (!card) return;
 		const csv = tableCardToCSV(card);
 		const fileName = card.getAttribute('data-filename') || 'table.csv';
